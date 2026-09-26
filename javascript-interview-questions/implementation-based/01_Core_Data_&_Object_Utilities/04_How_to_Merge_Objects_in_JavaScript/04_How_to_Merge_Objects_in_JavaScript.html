@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Merge Objects: Interview Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel-2: #1e222d;
+    --border: #2a2f3d;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #6c8cff;
+    --ok: #34d399;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --code: #ffd479;
+    --code-bg: #0c0e14;
+  }
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .page { display: grid; grid-template-columns: 200px 1fr; max-width: 1200px; margin: 0 auto; }
+
+  .sidebar {
+    position: sticky; top: 0; height: 100vh; padding: 32px 16px 32px 24px;
+    border-right: 1px solid var(--border); overflow-y: auto; font-size: 13px;
+  }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { margin-bottom: 4px; }
+  .toc-list a {
+    display: block; padding: 6px 10px; border-radius: 6px; color: var(--muted);
+    transition: all .15s;
+  }
+  .toc-list a:hover { background: rgba(108,140,255,.08); color: var(--text); text-decoration: none; }
+  .toc-list a.active { background: rgba(108,140,255,.12); color: var(--accent); font-weight: 600; }
+  .toc-list .toc-sub { padding-left: 20px; }
+
+  .progress-track {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--border); z-index: 100;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width .15s; border-radius: 0 2px 2px 0;
+  }
+
+  .content { min-width: 0; }
+
+  header {
+    padding: 48px 36px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  h1 { margin: 10px 0 8px; font-size: 32px; line-height: 1.2; }
+  header .lede { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-meta {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+  }
+  .badge-meta b { color: var(--accent); font-weight: 600; }
+
+  main { padding: 0 36px 80px; display: grid; gap: 0; }
+
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 22px;
+  }
+  .card h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: .2px; }
+  .card h2 + .hint { margin: 0 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 17px; margin: 0 0 8px; color: var(--text); }
+  header .lede, .card p, .card ul { max-width: 70ch; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--code);
+  }
+
+  .code-wrap {
+    position: relative; margin: 12px 0;
+  }
+  .code-wrap pre {
+    margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 10px; overflow-x: auto; font-size: 13px; color: #cfd6e4; line-height: 1.55;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .copy-btn.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .io-box {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .io-box .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  .step {
+    display: grid; grid-template-columns: 38px 1fr; gap: 14px;
+    padding: 18px 0; border-top: 1px solid var(--border);
+  }
+  .step:first-of-type { border-top: 0; padding-top: 4px; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(108,140,255,.15); color: var(--accent); font-weight: 700; font-size: 14px;
+    border: 1px solid rgba(108,140,255,.35);
+  }
+  .step-body h3 { margin: 3px 0 8px; font-size: 17px; }
+  .step-body p { margin: 0 0 10px; }
+  .step-body .code-wrap { margin-top: 10px; }
+
+  .say {
+    border-left: 3px solid var(--accent); background: rgba(108,140,255,.07);
+    padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic;
+    color: #cdd5e8; margin: 0 0 10px;
+  }
+
+  .callout {
+    padding: 14px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px;
+    line-height: 1.6;
+  }
+  .callout-title {
+    font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .callout.warn {
+    background: rgba(251,191,36,.08); border-left: 3px solid var(--warn);
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+  .callout.danger {
+    background: rgba(248,113,113,.08); border-left: 3px solid var(--bad);
+  }
+  .callout.danger .callout-title { color: var(--bad); }
+  .callout.tip {
+    background: rgba(52,211,153,.08); border-left: 3px solid var(--ok);
+  }
+  .callout.tip .callout-title { color: var(--ok); }
+  .callout.info {
+    background: rgba(108,140,255,.08); border-left: 3px solid var(--accent);
+  }
+  .callout.info .callout-title { color: var(--accent); }
+
+  .sub-step-header {
+    font-size: 13px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .5px; margin-top: 22px; margin-bottom: 8px;
+    padding-top: 16px; border-top: 1px dashed var(--border);
+  }
+
+  .takeaway {
+    border-left: 3px solid var(--ok); background: rgba(52,211,153,.07);
+    padding: 12px 16px; border-radius: 0 8px 8px 0;
+  }
+
+  #question { background: transparent; border: 0; border-radius: 0; padding: 6px 0 8px; }
+  #insights, #takeaway { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 22px 0 6px; }
+
+  footer {
+    max-width: 1200px; margin: 0 auto; padding: 0 36px 60px;
+    color: var(--muted); font-size: 13px;
+  }
+  .related { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+  .related-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    header { padding: 32px 20px 24px; }
+    main { padding: 0 20px 60px; }
+    footer { padding: 0 20px 40px; }
+    h1 { font-size: 26px; }
+  }
+  @media (max-width: 680px) {
+    .problem-grid { grid-template-columns: 1fr; }
+    .step { grid-template-columns: 30px 1fr; gap: 10px; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .step, section.card { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="page">
+  <nav class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#question">The Question</a></li>
+      <li><a href="#scenarios">How It's Asked</a></li>
+      <li class="toc-sub"><a href="#scenario-a">A. Shallow merge</a></li>
+      <li class="toc-sub"><a href="#scenario-b">B. Deep merge</a></li>
+      <li><a href="#steps">Step by Step</a></li>
+      <li class="toc-sub"><a href="#step-1">1. Clarify</a></li>
+      <li class="toc-sub"><a href="#step-2">2. Spread / assign</a></li>
+      <li class="toc-sub"><a href="#step-3">3. Custom shallow</a></li>
+      <li class="toc-sub"><a href="#step-4">4. Deep merge</a></li>
+      <li class="toc-sub"><a href="#step-5">5. Unified function</a></li>
+      <li class="toc-sub"><a href="#step-6">6. Edge cases</a></li>
+      <li><a href="#insights">Key Insights</a></li>
+      <li><a href="#takeaway">Takeaway</a></li>
+    </ul>
+  </nav>
+
+  <div class="content">
+    <header>
+      <div class="kicker">JavaScript Interview &middot; Implementation Question</div>
+      <h1>How to Merge Objects in JavaScript</h1>
+      <p class="lede">Almost everything in JavaScript is an object, yet JS didn't originally have built-in methods for merging them. This question tests your knowledge of <b>shallow vs. deep merging</b>, spread syntax, <code>Object.assign</code>, and custom recursive implementations.</p>
+      <div class="badges">
+        <span class="badge-meta"><b>Difficulty:</b> &#11088;&#11088;</span>
+        <span class="badge-meta"><b>Category:</b> Object Operations</span>
+        <span class="badge-meta"><b>Frequency:</b> High</span>
+        <span class="badge-meta">#object</span>
+        <span class="badge-meta">#merge</span>
+        <span class="badge-meta">#shallow</span>
+        <span class="badge-meta">#deep</span>
+        <span class="badge-meta">#spread</span>
+      </div>
+    </header>
+
+    <main>
+
+      <section class="card" id="question">
+        <h2>The question</h2>
+        <p class="hint">Restate what the interviewer is really asking before you write code.</p>
+        <ul>
+          <li>Merge two or more objects into one.</li>
+          <li>Understand the difference between <b>shallow merge</b> (top-level only) and <b>deep merge</b> (recursive).</li>
+          <li>Be ready to discuss <b>spread syntax</b>, <b>Object.assign</b>, and write <b>custom polyfills</b> for both.</li>
+        </ul>
+        <div class="problem-grid">
+          <div class="io-box">
+            <div class="label">Input</div>
+            <div class="code-wrap"><pre><code>obj1 = { name: "prashant", age: 23,
+         nature: { helping: true, shy: false } }
+
+obj2 = { qualification: "BSC CS",
+         nature: { angry: false, shy: true } }</code></pre></div>
+          </div>
+          <div class="io-box">
+            <div class="label">Output (deep merge)</div>
+            <div class="code-wrap"><pre><code>{
+  name: "prashant",
+  age: 23,
+  qualification: "BSC CS",
+  nature: { helping: true, angry: false, shy: true }
+}</code></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="scenarios">
+        <h2>How the question is asked</h2>
+        <p class="hint">The same problem can enter from different doors. Recognise the entry point and pick the right approach.</p>
+
+        <div class="step" id="scenario-a">
+          <div class="step-num">A</div>
+          <div class="step-body">
+            <h3>Shallow merge request</h3>
+            <p class="say">"How do you merge two objects in JavaScript?"</p>
+            <p>The interviewer wants to see if you know the built-in tools first. Start with spread syntax and <code>Object.assign</code>, then mention the custom implementation.</p>
+            <p><b>What to do:</b> Show spread first (most idiomatic), then <code>Object.assign</code>, then a custom function. Explain that both are shallow &mdash; nested objects are not deeply merged.</p>
+          </div>
+        </div>
+
+        <div class="step" id="scenario-b">
+          <div class="step-num">B</div>
+          <div class="step-body">
+            <h3>Deep merge request</h3>
+            <p class="say">"What about nested objects? How do you deeply merge?"</p>
+            <p>The interviewer is probing deeper. They want to see recursion and type checking. This is where the real implementation challenge lies.</p>
+            <p><b>What to do:</b> Explain that shallow merge overwrites nested objects entirely. Then write a recursive deep merge function using <code>Object.prototype.toString.call()</code> or <code>typeof</code> + <code>Object.keys()</code>.</p>
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Shallow</div>
+                <div class="code-wrap"><pre><code>// Spread overwrites nested objects
+{ ...obj1, ...obj2 }
+// nature: { angry: false, shy: true }
+// helping: true is LOST!</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Deep</div>
+                <div class="code-wrap"><pre><code>// Recursive merge preserves both
+merge(true, obj1, obj2)
+// nature: { helping: true, angry: false, shy: true }
+// helping: true is PRESERVED</code></pre></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="steps">
+        <h2>How to answer, step by step</h2>
+        <p class="hint">Regardless of how the question is asked, the strongest answer follows this progression.</p>
+
+        <div class="step" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clarify the question</h3>
+            <p class="say">"Should I do a shallow merge or a deep merge? With a shallow merge, nested objects are overwritten entirely. With a deep merge, nested objects are recursively combined."</p>
+            <p>This shows you understand the critical distinction before writing any code. The interviewer will almost always say "deep merge" &mdash; but starting with shallow shows breadth.</p>
+          </div>
+        </div>
+
+        <div class="step" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Show the native approaches</h3>
+            <p class="say">"For shallow merges, JavaScript gives us two built-in tools: spread syntax and <code>Object.assign</code>."</p>
+
+            <div class="sub-step-header">A. Spread operator</div>
+            <div class="code-wrap"><pre><code>let obj1 = { name: 'prashant', age: 23 };
+let obj2 = { qualification: 'BSC CS', loves: 'Javascript' };
+
+let merge = { ...obj1, ...obj2 };
+
+console.log(merge);
+// { name: "prashant", age: 23, qualification: "BSC CS", loves: "Javascript" }</code></pre></div>
+            <p>Spread copies all enumerable own properties into a new object. The rightmost object wins on duplicate keys.</p>
+
+            <div class="sub-step-header">B. Object.assign</div>
+            <div class="code-wrap"><pre><code>let merge = Object.assign({}, obj1, obj2);
+
+console.log(merge);
+// { name: "prashant", age: 23, qualification: "BSC CS", loves: "Javascript" }</code></pre></div>
+            <div class="callout info">
+              <div class="callout-title">&#9432; Why pass an empty object?</div>
+              <p style="margin:0"><code>Object.assign({}, obj1, obj2)</code> &mdash; the empty <code>{}</code> as the first argument ensures you don't mutate the original objects. Without it, you'd modify <code>obj1</code> directly.</p>
+            </div>
+
+            <p><b>Both are shallow.</b> If <code>obj1.nature = { helping: true }</code> and <code>obj2.nature = { shy: true }</code>, the result has <code>nature: { shy: true }</code> &mdash; the nested object from <code>obj1</code> is completely overwritten.</p>
+          </div>
+        </div>
+
+        <div class="step" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Write a custom shallow merge</h3>
+            <p class="say">"Here's how you'd implement shallow merge from scratch &mdash; useful if you need to understand what's happening under the hood."</p>
+            <div class="code-wrap"><pre><code>let merge = (...arguments) => {
+  let target = {};
+
+  let merger = (obj) => {
+    for (let prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        target[prop] = obj[prop];
+      }
+    }
+  };
+
+  for (let i = 0; i < arguments.length; i++) {
+    merger(arguments[i]);
+  }
+
+  return target;
+};</code></pre></div>
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Key detail</div>
+              <p style="margin:0">Using <code>for...in</code> with <code>hasOwnProperty</code> ensures we only copy <b>own properties</b>, not inherited ones from the prototype chain. This matches the behavior of <code>Object.assign</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-4">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Write the deep merge function</h3>
+            <p class="say">"Now for the real challenge &mdash; a recursive deep merge that combines nested objects instead of overwriting them."</p>
+
+            <div class="sub-step-header">A. Pseudocode</div>
+            <div class="code-wrap"><pre><code>function merge(...args):
+    create empty target object
+
+    for each source object:
+        for each property in source:
+            if property value is an object (not null, not array):
+                recursively merge target[prop] and source[prop]
+            else:
+                copy source[prop] to target[prop]
+
+    return target</code></pre></div>
+
+            <div class="sub-step-header">B. The implementation</div>
+            <div class="code-wrap"><pre><code>let merge = (...arguments) => {
+  let target = {};
+
+  let merger = (obj) => {
+    for (let prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        if (Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+          target[prop] = merge(target[prop], obj[prop]);
+        } else {
+          target[prop] = obj[prop];
+        }
+      }
+    }
+  };
+
+  for (let i = 0; i < arguments.length; i++) {
+    merger(arguments[i]);
+  }
+
+  return target;
+};</code></pre></div>
+
+            <div class="sub-step-header">C. Test it</div>
+            <div class="code-wrap"><pre><code>let obj1 = {
+  name: 'prashant',
+  age: 23,
+  nature: { "helping": true, "shy": false }
+};
+
+let obj2 = {
+  qualification: 'BSC CS',
+  loves: 'Javascript',
+  nature: { "angry": false, "shy": true }
+};
+
+console.log(merge(obj1, obj2));
+// {
+//   name: "prashant",
+//   age: 23,
+//   qualification: "BSC CS",
+//   loves: "Javascript",
+//   nature: { helping: true, angry: false, shy: true }
+// }</code></pre></div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Type checking choice</div>
+              <p style="margin:0"><code>Object.prototype.toString.call(obj[prop]) === '[object Object]'</code> is the most reliable way to check for plain objects. <code>typeof</code> returns <code>"object"</code> for both objects and arrays, and <code>null</code> also has typeof <code>"object"</code>. The toString check avoids these pitfalls.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-5">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Write the unified function (shallow + deep)</h3>
+            <p class="say">"We can combine both into a single function &mdash; if the first argument is <code>true</code>, it does a deep merge. Otherwise, shallow."</p>
+            <div class="code-wrap"><pre><code>let merge = (...arguments) => {
+   let target = {};
+   let deep = false;
+   let i = 0;
+
+   if (typeof (arguments[0]) === 'boolean') {
+      deep = arguments[0];
+      i++;
+   }
+
+   let merger = (obj) => {
+    for (let prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+          target[prop] = merge(target[prop], obj[prop]);
+        } else {
+          target[prop] = obj[prop];
+        }
+      }
+    }
+   };
+
+   for (; i < arguments.length; i++) {
+    merger(arguments[i]);
+   }
+
+   return target;
+};</code></pre></div>
+
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Shallow call</div>
+                <div class="code-wrap"><pre><code>merge(obj1, obj2)
+// nature: { angry: false, shy: true }
+// helping: true is LOST (shallow)</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Deep call</div>
+                <div class="code-wrap"><pre><code>merge(true, obj1, obj2)
+// nature: { helping: true, angry: false, shy: true }
+// helping: true is PRESERVED (deep)</code></pre></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-6">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <h3>Close with edge cases and complexity</h3>
+            <p class="say">"A few edge cases &mdash; arrays, null values, circular references, and property order. Time complexity is O(n) where n is the total number of properties across all nesting levels."</p>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Arrays</div>
+              <p style="margin:0">Our deep merge only handles plain objects. Arrays would be overwritten, not merged. You'd need additional logic to handle array merging (concat, union, etc.).</p>
+            </div>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Null values</div>
+              <div class="code-wrap"><pre><code>// null has typeof "object" in JS, but toString gives "[object Null]"
+// Our check: toString === '[object Object]' safely skips null
+merge({ a: 1 }, { a: null });
+// { a: null }  &mdash; null overwrites 1, which is correct</code></pre></div>
+            </div>
+
+            <div class="callout danger">
+              <div class="callout-title">&#9888; Circular references</div>
+              <p style="margin:0">If an object references itself, the recursive merge will loop infinitely:</p>
+              <div class="code-wrap" style="margin-top:8px"><pre><code>const a = { x: 1 };
+a.self = a;
+merge(a, { y: 2 });  // RangeError!</code></pre></div>
+              <p style="margin:8px 0 0">In production, you'd track visited objects. Mention this proactively.</p>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Time &amp; space complexity</div>
+              <ul style="margin:4px 0 0">
+                <li><b>Time:</b> O(n) where n is the total number of properties across all nesting levels. Every property is visited exactly once.</li>
+                <li><b>Space:</b> O(n) for the result object, plus O(d) for the call stack where d is the maximum nesting depth.</li>
+              </ul>
+            </div>
+
+            <div class="callout warn">
+              <div class="callout-title">&#9888; Production libraries</div>
+              <p style="margin:0">In production, consider using <b>Lodash</b> (<code>_.merge()</code>) or <b>jQuery</b> (<code>$.extend()</code>). They handle edge cases, arrays, circular references, and have been battle-tested across millions of projects.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card" id="insights">
+        <h2>Key insights</h2>
+        <ul>
+          <li><b>Shallow vs. deep</b> is the fundamental distinction &mdash; always clarify which one the interviewer wants.</li>
+          <li><b>Spread and Object.assign</b> are identical in behavior &mdash; both shallow. Spread is more idiomatic in modern JS.</li>
+          <li><b>Always pass <code>{}</code> as the target</b> in <code>Object.assign</code> to avoid mutating the original objects.</li>
+          <li><b>Deep merge requires recursion</b> and type checking &mdash; <code>Object.prototype.toString.call()</code> is the most reliable check.</li>
+          <li><b>The unified function</b> (shallow + deep) is a clean interview flex that shows design thinking.</li>
+          <li><b>Mention libraries</b> (Lodash, jQuery) for production &mdash; it shows practical judgment, not just algorithmic skill.</li>
+          <li><b>Edge cases</b> (arrays, null, circular refs) are what separate a good answer from a great one.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="takeaway">
+        <h2>Takeaway</h2>
+        <div class="takeaway">
+          Merging objects is a common real-world need &mdash; from config handling to API responses. Use <b>spread or Object.assign</b> for quick shallow merges. Use <b>custom recursion</b> for deep merging without external libraries. In production, rely on <b>Lodash or jQuery</b> for battle-tested solutions. Knowing both approaches (and when to use them) is an essential JavaScript skill.
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <div class="related">
+        <span class="related-label">Related</span>
+        <a href="../01_How_to_Flatten_an_Array_in_JavaScript/01_How_to_Flatten_an_Array_in_JavaScript.html">Flatten an array</a>
+        <a href="../02_Deep_Flatten_Object_in_JavaScript/02_Deep_Flatten_Object_in_JavaScript.html">Deep flatten object</a>
+        <a href="../03_Array_Iterator_Method_in_JavaScript/03_Array_Iterator_Method_in_JavaScript.html">Array iterator</a>
+        <a href="04_How_to_Merge_Objects_in_JavaScript.md">Source markdown</a>
+      </div>
+      <div>
+        Reference: <a href="https://learnersbucket.com/examples/interview/how-to-merge-objects-in-javascript/" target="_blank" rel="noopener">learnersbucket.com</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const code = wrap.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+  wrap.appendChild(btn);
+});
+
+window.addEventListener('scroll', () => {
+  const fill = document.getElementById('progressFill');
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = docHeight > 0 ? (scrollTop / docHeight * 100) + '%' : '0%';
+});
+
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = [];
+tocLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+
+function updateToc() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  tocLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateToc);
+updateToc();
+</script>
+</body>
+</html>

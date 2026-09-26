@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Array Iterator Method: Interview Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel-2: #1e222d;
+    --border: #2a2f3d;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #6c8cff;
+    --ok: #34d399;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --code: #ffd479;
+    --code-bg: #0c0e14;
+  }
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Layout ── */
+  .page { display: grid; grid-template-columns: 200px 1fr; max-width: 1200px; margin: 0 auto; }
+
+  /* ── Sidebar TOC ── */
+  .sidebar {
+    position: sticky; top: 0; height: 100vh; padding: 32px 16px 32px 24px;
+    border-right: 1px solid var(--border); overflow-y: auto; font-size: 13px;
+  }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { margin-bottom: 4px; }
+  .toc-list a {
+    display: block; padding: 6px 10px; border-radius: 6px; color: var(--muted);
+    transition: all .15s;
+  }
+  .toc-list a:hover { background: rgba(108,140,255,.08); color: var(--text); text-decoration: none; }
+  .toc-list a.active { background: rgba(108,140,255,.12); color: var(--accent); font-weight: 600; }
+  .toc-list .toc-sub { padding-left: 20px; }
+
+  /* ── Progress bar ── */
+  .progress-track {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--border); z-index: 100;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width .15s; border-radius: 0 2px 2px 0;
+  }
+
+  /* ── Main content ── */
+  .content { min-width: 0; }
+
+  header {
+    padding: 48px 36px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  h1 { margin: 10px 0 8px; font-size: 32px; line-height: 1.2; }
+  header .lede { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-meta {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+  }
+  .badge-meta b { color: var(--accent); font-weight: 600; }
+  .badge-meta.company b { color: var(--warn); }
+
+  main { padding: 0 36px 80px; display: grid; gap: 0; }
+
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 22px;
+  }
+  .card h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: .2px; }
+  .card h2 + .hint { margin: 0 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 17px; margin: 0 0 8px; color: var(--text); }
+  header .lede, .card p, .card ul { max-width: 70ch; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--code);
+  }
+
+  /* ── Code blocks ── */
+  .code-wrap {
+    position: relative; margin: 12px 0;
+  }
+  .code-wrap pre {
+    margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 10px; overflow-x: auto; font-size: 13px; color: #cfd6e4; line-height: 1.55;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .copy-btn.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  /* ── Problem + example ── */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .io-box {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .io-box .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  /* ── Steps ── */
+  .step {
+    display: grid; grid-template-columns: 38px 1fr; gap: 14px;
+    padding: 18px 0; border-top: 1px solid var(--border);
+  }
+  .step:first-of-type { border-top: 0; padding-top: 4px; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(108,140,255,.15); color: var(--accent); font-weight: 700; font-size: 14px;
+    border: 1px solid rgba(108,140,255,.35);
+  }
+  .step-body h3 { margin: 3px 0 8px; font-size: 17px; }
+  .step-body p { margin: 0 0 10px; }
+  .step-body .code-wrap { margin-top: 10px; }
+
+  /* ── Say block (quote) ── */
+  .say {
+    border-left: 3px solid var(--accent); background: rgba(108,140,255,.07);
+    padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic;
+    color: #cdd5e8; margin: 0 0 10px;
+  }
+
+  /* ── Callout boxes ── */
+  .callout {
+    padding: 14px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px;
+    line-height: 1.6;
+  }
+  .callout-title {
+    font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .callout.warn {
+    background: rgba(251,191,36,.08); border-left: 3px solid var(--warn);
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+  .callout.danger {
+    background: rgba(248,113,113,.08); border-left: 3px solid var(--bad);
+  }
+  .callout.danger .callout-title { color: var(--bad); }
+  .callout.tip {
+    background: rgba(52,211,153,.08); border-left: 3px solid var(--ok);
+  }
+  .callout.tip .callout-title { color: var(--ok); }
+  .callout.info {
+    background: rgba(108,140,255,.08); border-left: 3px solid var(--accent);
+  }
+  .callout.info .callout-title { color: var(--accent); }
+
+  /* ── Pill / tags ── */
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .pill.info { color: var(--muted); background: rgba(154,163,178,.12); }
+
+  /* ── Sub-step headers (4A, 4B, etc.) ── */
+  .sub-step-header {
+    font-size: 13px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .5px; margin-top: 22px; margin-bottom: 8px;
+    padding-top: 16px; border-top: 1px dashed var(--border);
+  }
+
+  /* ── Takeaway ── */
+  .takeaway {
+    border-left: 3px solid var(--ok); background: rgba(52,211,153,.07);
+    padding: 12px 16px; border-radius: 0 8px 8px 0;
+  }
+
+  /* ── Hierarchy overrides ── */
+  #question { background: transparent; border: 0; border-radius: 0; padding: 6px 0 8px; }
+  #insights, #takeaway { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 22px 0 6px; }
+  #steps, #scenarios { border-color: rgba(108,140,255,.38); }
+
+  /* ── Footer ── */
+  footer {
+    max-width: 1200px; margin: 0 auto; padding: 0 36px 60px;
+    color: var(--muted); font-size: 13px;
+  }
+  .related { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+  .related-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    header { padding: 32px 20px 24px; }
+    main { padding: 0 20px 60px; }
+    footer { padding: 0 20px 40px; }
+    h1 { font-size: 26px; }
+  }
+  @media (max-width: 680px) {
+    .problem-grid { grid-template-columns: 1fr; }
+    .step { grid-template-columns: 30px 1fr; gap: 10px; }
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .step, section.card { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="page">
+  <!-- Sidebar TOC -->
+  <nav class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#question">The Question</a></li>
+      <li><a href="#scenarios">How It's Asked</a></li>
+      <li class="toc-sub"><a href="#scenario-a">A. Direct implementation</a></li>
+      <li class="toc-sub"><a href="#scenario-b">B. Progressive complexity</a></li>
+      <li><a href="#steps">Step by Step</a></li>
+      <li class="toc-sub"><a href="#step-1">1. Clarify</a></li>
+      <li class="toc-sub"><a href="#step-2">2. Closure concept</a></li>
+      <li class="toc-sub"><a href="#step-3">3. State management</a></li>
+      <li class="toc-sub"><a href="#step-4">4. Full implementation</a></li>
+      <li class="toc-sub"><a href="#step-5">5. Edge cases</a></li>
+      <li><a href="#generators">Generator Alternative</a></li>
+      <li><a href="#insights">Key Insights</a></li>
+      <li><a href="#takeaway">Takeaway</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main content -->
+  <div class="content">
+    <header>
+      <div class="kicker">JavaScript Interview &middot; Implementation Question</div>
+      <h1>Array Iterator Method in JavaScript</h1>
+      <p class="lede">Create a custom iterator that accepts an array and returns methods to get the next value and check if iteration is complete. This tests your understanding of <b>closures, state management, and iteration protocols</b>.</p>
+      <div class="badges">
+        <span class="badge-meta"><b>Difficulty:</b> &#11088;&#11088;</span>
+        <span class="badge-meta"><b>Category:</b> Iteration &amp; Closures</span>
+        <span class="badge-meta"><b>Frequency:</b> Medium</span>
+        <span class="badge-meta">#iterator</span>
+        <span class="badge-meta">#closure</span>
+        <span class="badge-meta">#array</span>
+        <span class="badge-meta">#interview</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- 1. THE QUESTION -->
+      <section class="card" id="question">
+        <h2>The question</h2>
+        <p class="hint">Restate what the interviewer is really asking before you write code.</p>
+        <ul>
+          <li>Build a <code>helper</code> function that takes an array and returns an iterator object.</li>
+          <li>The iterator must have a <code>next()</code> method that returns the next element (or <code>null</code> when exhausted).</li>
+          <li>It must also have a <code>done()</code> method that returns a boolean indicating if iteration is complete.</li>
+        </ul>
+        <div class="problem-grid">
+          <div class="io-box">
+            <div class="label">Input</div>
+            <div class="code-wrap"><pre><code>helper([1, 2, "hello"])</code></pre></div>
+          </div>
+          <div class="io-box">
+            <div class="label">Output (sequence)</div>
+            <div class="code-wrap"><pre><code>iterator.next()  // 1
+iterator.next()  // 2
+iterator.done()  // false
+iterator.next()  // "hello"
+iterator.done()  // true
+iterator.next()  // null</code></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. HOW THE QUESTION IS ASKED -->
+      <section class="card" id="scenarios">
+        <h2>How the question is asked</h2>
+        <p class="hint">The same problem can enter from different doors. Recognise the entry point and pick the right approach.</p>
+
+        <!-- SCENARIO A -->
+        <div class="step" id="scenario-a">
+          <div class="step-num">A</div>
+          <div class="step-body">
+            <h3>Direct implementation request</h3>
+            <p class="say">"Write a function that creates an iterator for an array."</p>
+            <p>The interviewer gives you the full spec upfront. They want to see your ability to use <b>closures for state management</b>.</p>
+            <p><b>What to do:</b> Start by explaining that you'll use a closure to capture the array and an index. Then write the implementation step by step. Mention that this mimics the native iterator protocol.</p>
+          </div>
+        </div>
+
+        <!-- SCENARIO B -->
+        <div class="step" id="scenario-b">
+          <div class="step-num">B</div>
+          <div class="step-body">
+            <h3>Progressive complexity</h3>
+            <p class="say">"Make an iterator." &rarr; "Now add a done check." &rarr; "What if the array is empty?" &rarr; "Can you do it with generators?"</p>
+            <p>The interviewer starts simple and <b>ramps up complexity</b>. Each answer becomes the baseline for the next question.</p>
+            <p><b>What to do:</b> Answer each level completely before moving on. Let them lead.</p>
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Level 1</div>
+                <div class="code-wrap"><pre><code>// "Make an iterator"
+const helper = (arr) =&gt; {
+  let index = 0;
+  return {
+    next: () =&gt; arr[index++] ?? null
+  };
+};</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Level 2</div>
+                <div class="code-wrap"><pre><code>// "Now add a done check"
+return {
+  next: () =&gt; index &lt; arr.length ? arr[index++] : null,
+  done: () =&gt; index &gt;= arr.length
+};</code></pre></div>
+              </div>
+            </div>
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Level 3</div>
+                <div class="code-wrap"><pre><code>// "Empty array?"
+helper([]).next()   // null
+helper([]).done()   // true
+
+// Works &mdash; index starts at 0, immediately exhausted</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Level 4</div>
+                <div class="code-wrap"><pre><code>// "Can you do it with generators?"
+function* gen(arr) {
+  for (const item of arr) yield item;
+}
+// Closer to native iterator protocol</code></pre></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. STEP BY STEP -->
+      <section class="card" id="steps">
+        <h2>How to answer, step by step</h2>
+        <p class="hint">Regardless of how the question is asked, the strongest answer follows this progression. Each step below shows you <b>what to say</b>, <b>what to write</b>, and <b>why it matters</b>.</p>
+
+        <!-- STEP 1 -->
+        <div class="step" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clarify the question</h3>
+            <p class="say">"Before I start &mdash; should <code>next()</code> return the value directly, or an object like <code>{ value, done }</code>? And should it return <code>null</code> or <code>undefined</code> when exhausted?"</p>
+            <p>Asking this shows you think before you code. You're confirming the exact contract: <b>return format</b> (value vs. object) and <b>exhaustion behavior</b> (null vs. undefined). The interviewer will usually say "just return the value or null."</p>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Explain the closure concept</h3>
+            <p class="say">"I'll use a closure to maintain state. The outer function captures the array and an index tracker, and the returned methods can access and modify that index across calls."</p>
+            <p>This is the foundation. You're proving you understand how closures preserve state between function invocations.</p>
+            <div class="code-wrap"><pre><code>// Closure = function + its lexical environment
+const helper = (array) =&gt; {
+  // This variable lives in the closure
+  // It persists across calls to next() and done()
+  let nextIndex = 0;
+
+  return {
+    next: function () { /* can access array and nextIndex */ },
+    done: function () { /* can access array and nextIndex */ }
+  };
+};</code></pre></div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Why closures?</div>
+              <p style="margin:0">Closures let you create <b>private state</b>. The <code>nextIndex</code> variable is not accessible from outside the returned object &mdash; only <code>next()</code> and <code>done()</code> can read or modify it. This is encapsulation without classes.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Design the state management</h3>
+            <p class="say">"The index starts at 0 and increments with each <code>next()</code> call. When it reaches the array length, we've exhausted the iterator."</p>
+            <div class="code-wrap"><pre><code>// State transitions:
+// Index 0 → return array[0], move to index 1
+// Index 1 → return array[1], move to index 2
+// ...
+// Index n → return null (exhausted)
+// done() returns true when index >= array.length</code></pre></div>
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Post-increment trick</div>
+              <p style="margin:0">Use <code>array[nextIndex++]</code> &mdash; this returns the current value <b>then</b> increments the index. It's a single expression that does both operations. If you used <code>++nextIndex</code> (pre-increment), you'd skip the first element.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step" id="step-4">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Write the full implementation</h3>
+            <p class="say">"Now for the proper implementation &mdash; a closure-based iterator with <code>next()</code> and <code>done()</code>."</p>
+
+            <!-- 4A: PSEUDOCODE -->
+            <div class="sub-step-header">A. Pseudocode</div>
+            <div class="code-wrap"><pre><code>function helper(array):
+    create index = 0
+
+    return object with:
+        next():
+            if index < array.length:
+                return array[index++]  // post-increment
+            else:
+                return null
+
+        done():
+            return index >= array.length</code></pre></div>
+
+            <!-- 4B: BUILDING THE CODE -->
+            <div class="sub-step-header">B. Building the code &mdash; line by line</div>
+
+            <div class="code-wrap"><pre><code>const helper = (array) =&gt; {</code></pre></div>
+            <p><b>Line 1 &mdash; function signature.</b> Takes an array as input. We'll return an iterator object with <code>next()</code> and <code>done()</code> methods.</p>
+
+            <div class="code-wrap"><pre><code>  let nextIndex = 0;</code></pre></div>
+            <p><b>Line 2 &mdash; the state.</b> This is the key. <code>nextIndex</code> lives in the closure &mdash; it persists across calls to <code>next()</code> and <code>done()</code>. Every time <code>next()</code> is called, it reads and increments this value.</p>
+
+            <div class="code-wrap"><pre><code>  return {</code></pre></div>
+            <p><b>Line 3 &mdash; return the iterator.</b> We return an object, not the functions directly. This gives us a clean API: <code>iterator.next()</code>, <code>iterator.done()</code>.</p>
+
+            <div class="code-wrap"><pre><code>    next: function () {
+      return nextIndex &lt; array.length
+        ? array[nextIndex++]
+        : null;
+    },</code></pre></div>
+            <p><b>Lines 4-6 &mdash; the next() method.</b> Two paths: if the index is within bounds, return the current element and increment (post-increment). Otherwise, return <code>null</code> to signal exhaustion.</p>
+
+            <div class="code-wrap"><pre><code>    done: function () {
+      return nextIndex &gt;= array.length;
+    }</code></pre></div>
+            <p><b>Lines 7-9 &mdash; the done() method.</b> Simply checks if we've reached or passed the end of the array. Returns a boolean.</p>
+
+            <div class="code-wrap"><pre><code>  };
+};</code></pre></div>
+
+            <!-- 4C: THE FINAL VERSION -->
+            <div class="sub-step-header">C. The final version &mdash; clean</div>
+            <div class="code-wrap"><pre><code>const helper = (array) =&gt; {
+  let nextIndex = 0;
+
+  return {
+    next: function () {
+      return nextIndex &lt; array.length
+        ? array[nextIndex++]
+        : null;
+    },
+
+    done: function () {
+      return nextIndex &gt;= array.length;
+    }
+  };
+};</code></pre></div>
+
+            <!-- 4D: TEST IT -->
+            <div class="sub-step-header">D. Test it &mdash; walk through the sequence</div>
+            <div class="code-wrap"><pre><code>let iterator = helper([1, 2, "hello"]);
+
+console.log(iterator.next()); // 1      (index: 0 → 1)
+console.log(iterator.next()); // 2      (index: 1 → 2)
+console.log(iterator.done()); // false  (index 2 &lt; length 3)
+console.log(iterator.next()); // "hello" (index: 2 → 3)
+console.log(iterator.done()); // true   (index 3 >= length 3)
+console.log(iterator.next()); // null   (exhausted)</code></pre></div>
+
+            <!-- 4E: THE TRICKY PART -->
+            <div class="sub-step-header">E. The tricky part &mdash; post-increment vs. pre-increment</div>
+            <div class="code-wrap"><pre><code>// POST-increment (correct): array[nextIndex++]
+// Returns array[0], THEN increments nextIndex to 1
+// First call returns 1 ✓
+
+// PRE-increment (wrong): array[++nextIndex]
+// Increments nextIndex to 1 first, THEN returns array[1]
+// First call returns 2 ✗ (skips first element!)</code></pre></div>
+            <p><b>Why this matters:</b> This is a classic gotcha. The difference between <code>i++</code> and <code>++i</code> is subtle but critical. In an interview, mentioning this shows you understand evaluation order.</p>
+          </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step" id="step-5">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Close with edge cases and complexity</h3>
+            <p class="say">"A few edge cases &mdash; empty arrays, calling <code>next()</code> after exhaustion, and multiple iterators from the same array. Time complexity is O(1) per call, O(n) total."</p>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Empty array</div>
+              <div class="code-wrap"><pre><code>const it = helper([]);
+it.next(); // null (immediately exhausted)
+it.done(); // true</code></pre></div>
+            </div>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Calling next() after exhaustion</div>
+              <div class="code-wrap"><pre><code>const it = helper([1]);
+it.next(); // 1
+it.next(); // null
+it.next(); // null (safe to keep calling)
+it.done(); // true</code></pre></div>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Multiple iterators</div>
+              <div class="code-wrap"><pre><code>const arr = [1, 2, 3];
+const it1 = helper(arr);
+const it2 = helper(arr);
+
+it1.next(); // 1
+it1.next(); // 2
+it2.next(); // 1  ← independent iterator!</code></pre></div>
+              <p style="margin:8px 0 0">Each call to <code>helper()</code> creates a new closure with its own <code>nextIndex</code>. Iterators are independent.</p>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Time &amp; space complexity</div>
+              <ul style="margin:4px 0 0">
+                <li><b>Time:</b> O(1) per <code>next()</code> / <code>done()</code> call. O(n) total to iterate the full array.</li>
+                <li><b>Space:</b> O(1) for the closure (just stores the array reference and index). O(n) if you collect all values into a new array.</li>
+              </ul>
+            </div>
+
+            <div class="callout danger">
+              <div class="callout-title">&#9888; Array mutation</div>
+              <p style="margin:0">If the array is mutated after creating the iterator, behavior is undefined:</p>
+              <div class="code-wrap" style="margin-top:8px"><pre><code>const arr = [1, 2, 3];
+const it = helper(arr);
+it.next(); // 1
+arr.push(4);  // mutation!
+it.next();    // 2 (works, but the array changed)</code></pre></div>
+              <p style="margin:8px 0 0">In production, you'd want to freeze the array or copy it. Mention this proactively.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GENERATOR ALTERNATIVE -->
+      <section class="card" id="generators">
+        <h2>Alternative: ES6 Generators</h2>
+        <p class="hint">Modern JavaScript provides generators (<code>function*</code>) as a built-in way to create iterators. This is closer to the native iterator protocol.</p>
+        <div class="code-wrap"><pre><code>function* generatorHelper(array) {
+  for (let item of array) {
+    yield item;
+  }
+}
+
+const iterator = generatorHelper([1, 2, "hello"]);
+
+console.log(iterator.next().value); // 1
+console.log(iterator.next().value); // 2
+console.log(iterator.next().done);  // false
+console.log(iterator.next().value); // "hello"
+console.log(iterator.next().done);  // true</code></pre></div>
+
+        <div class="callout info">
+          <div class="callout-title">&#9432; Closure vs. Generator</div>
+          <ul style="margin:4px 0 0">
+            <li><b>Closure:</b> Manual state management, more explicit, works in older environments. Shows you understand how iteration works under the hood.</li>
+            <li><b>Generator:</b> Built-in <code>yield</code> keyword handles state automatically, matches the native iterator protocol, cleaner syntax. But it's "magic" &mdash; interviewers may want to see the closure version first.</li>
+          </ul>
+        </div>
+
+        <div class="callout warn">
+          <div class="callout-title">&#9888; Interview strategy</div>
+          <p style="margin:0">Always show the <b>closure version first</b>. It proves you understand the fundamentals. Then mention generators as an alternative &mdash; this shows you know modern JavaScript without skipping the basics.</p>
+        </div>
+      </section>
+
+      <!-- 4. KEY INSIGHTS -->
+      <section class="card" id="insights">
+        <h2>Key insights</h2>
+        <ul>
+          <li><b>Closures are the foundation</b> &mdash; the iterator's state lives in the closure, not in global variables or object properties.</li>
+          <li><b>Post-increment (<code>i++</code>)</b> is essential &mdash; pre-increment skips the first element.</li>
+          <li><b>Return an object</b> with methods, not bare functions &mdash; this gives a cleaner API and matches the native iterator protocol.</li>
+          <li><b>Empty arrays and post-exhaustion</b> calls must be handled gracefully.</li>
+          <li><b>Multiple iterators</b> from the same array are independent &mdash; each has its own closure.</li>
+          <li><b>Generators</b> are the modern alternative &mdash; show them after the closure version to demonstrate range.</li>
+          <li>This question demonstrates <b>encapsulation, state management, and iteration logic</b> &mdash; three core JavaScript concepts in one problem.</li>
+        </ul>
+      </section>
+
+      <!-- 5. TAKEAWAY -->
+      <section class="card" id="takeaway">
+        <h2>Takeaway</h2>
+        <div class="takeaway">
+          Building a custom array iterator helps you understand how iteration works under the hood, practice closures and stateful functions, and compare closures vs. ES6 generators. This pattern is essential for mastering <b>iterables, async iterables, and custom data structures</b> in JavaScript.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="related">
+        <span class="related-label">Related</span>
+        <a href="../01_How_to_Flatten_an_Array_in_JavaScript/01_How_to_Flatten_an_Array_in_JavaScript.html">Flatten an array</a>
+        <a href="../02_Deep_Flatten_Object_in_JavaScript/02_Deep_Flatten_Object_in_JavaScript.html">Deep flatten object</a>
+        <a href="03_Array_Iterator_Method_in_JavaScript.md">Source markdown</a>
+      </div>
+      <div>
+        Reference: <a href="https://learnersbucket.com/examples/interview/array-iterator-method-in-javascript/" target="_blank" rel="noopener">learnersbucket.com</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+// ── Copy buttons on code blocks ──
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const code = wrap.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+  wrap.appendChild(btn);
+});
+
+// ── Scroll progress bar ──
+window.addEventListener('scroll', () => {
+  const fill = document.getElementById('progressFill');
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = docHeight > 0 ? (scrollTop / docHeight * 100) + '%' : '0%';
+});
+
+// ── Active TOC link tracking ──
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = [];
+tocLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+
+function updateToc() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  tocLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateToc);
+updateToc();
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set Object Value at String Path: Interview Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --panel-2: #1e222d; --border: #2a2f3d;
+    --text: #e6e8ee; --muted: #9aa3b2; --accent: #6c8cff; --ok: #34d399;
+    --bad: #f87171; --warn: #fbbf24; --code: #ffd479; --code-bg: #0c0e14;
+  }
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .page { display: grid; grid-template-columns: 200px 1fr; max-width: 1200px; margin: 0 auto; }
+  .sidebar { position: sticky; top: 0; height: 100vh; padding: 32px 16px 32px 24px; border-right: 1px solid var(--border); overflow-y: auto; font-size: 13px; }
+  .sidebar-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { margin-bottom: 4px; }
+  .toc-list a { display: block; padding: 6px 10px; border-radius: 6px; color: var(--muted); transition: all .15s; }
+  .toc-list a:hover { background: rgba(108,140,255,.08); color: var(--text); text-decoration: none; }
+  .toc-list a.active { background: rgba(108,140,255,.12); color: var(--accent); font-weight: 600; }
+  .toc-list .toc-sub { padding-left: 20px; }
+  .progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--border); z-index: 100; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width .15s; border-radius: 0 2px 2px 0; }
+  .content { min-width: 0; }
+  header { padding: 48px 36px 28px; border-bottom: 1px solid var(--border); }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  h1 { margin: 10px 0 8px; font-size: 32px; line-height: 1.2; }
+  header .lede { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-meta { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+  .badge-meta b { color: var(--accent); font-weight: 600; }
+  main { padding: 0 36px 80px; display: grid; gap: 0; }
+  section.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-top: 22px; }
+  .card h2 { margin: 0 0 6px; font-size: 22px; }
+  .card h2 + .hint { margin: 0 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 17px; margin: 0 0 8px; color: var(--text); }
+  header .lede, .card p, .card ul { max-width: 70ch; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--code); }
+  .code-wrap { position: relative; margin: 12px 0; }
+  .code-wrap pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 13px; color: #cfd6e4; line-height: 1.55; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .copy-btn.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .io-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .io-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 8px; }
+  .step { display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding: 18px 0; border-top: 1px solid var(--border); }
+  .step:first-of-type { border-top: 0; padding-top: 4px; }
+  .step-num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(108,140,255,.15); color: var(--accent); font-weight: 700; font-size: 14px; border: 1px solid rgba(108,140,255,.35); }
+  .step-body h3 { margin: 3px 0 8px; font-size: 17px; }
+  .step-body p { margin: 0 0 10px; }
+  .step-body .code-wrap { margin-top: 10px; }
+  .say { border-left: 3px solid var(--accent); background: rgba(108,140,255,.07); padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic; color: #cdd5e8; margin: 0 0 10px; }
+  .callout { padding: 14px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px; line-height: 1.6; }
+  .callout-title { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .callout.warn { background: rgba(251,191,36,.08); border-left: 3px solid var(--warn); }
+  .callout.warn .callout-title { color: var(--warn); }
+  .callout.danger { background: rgba(248,113,113,.08); border-left: 3px solid var(--bad); }
+  .callout.danger .callout-title { color: var(--bad); }
+  .callout.tip { background: rgba(52,211,153,.08); border-left: 3px solid var(--ok); }
+  .callout.tip .callout-title { color: var(--ok); }
+  .callout.info { background: rgba(108,140,255,.08); border-left: 3px solid var(--accent); }
+  .callout.info .callout-title { color: var(--accent); }
+  .sub-step-header { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 22px; margin-bottom: 8px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .takeaway { border-left: 3px solid var(--ok); background: rgba(52,211,153,.07); padding: 12px 16px; border-radius: 0 8px 8px 0; }
+  #question { background: transparent; border: 0; border-radius: 0; padding: 6px 0 8px; }
+  #insights, #takeaway { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 22px 0 6px; }
+  footer { max-width: 1200px; margin: 0 auto; padding: 0 36px 60px; color: var(--muted); font-size: 13px; }
+  .related { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+  .related-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  @media (max-width: 900px) { .page { grid-template-columns: 1fr; } .sidebar { display: none; } header { padding: 32px 20px 24px; } main { padding: 0 20px 60px; } footer { padding: 0 20px 40px; } h1 { font-size: 26px; } }
+  @media (max-width: 680px) { .problem-grid { grid-template-columns: 1fr; } .step { grid-template-columns: 30px 1fr; gap: 10px; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .step, section.card { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="page">
+  <nav class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#question">The Question</a></li>
+      <li><a href="#scenarios">How It's Asked</a></li>
+      <li class="toc-sub"><a href="#scenario-a">A. Direct polyfill</a></li>
+      <li class="toc-sub"><a href="#scenario-b">B. Progressive complexity</a></li>
+      <li><a href="#steps">Step by Step</a></li>
+      <li class="toc-sub"><a href="#step-1">1. Clarify</a></li>
+      <li class="toc-sub"><a href="#step-2">2. Path normalization</a></li>
+      <li class="toc-sub"><a href="#step-3">3. Recursive helper</a></li>
+      <li class="toc-sub"><a href="#step-4">4. Full implementation</a></li>
+      <li class="toc-sub"><a href="#step-5">5. Edge cases</a></li>
+      <li><a href="#insights">Key Insights</a></li>
+      <li><a href="#takeaway">Takeaway</a></li>
+    </ul>
+  </nav>
+
+  <div class="content">
+    <header>
+      <div class="kicker">JavaScript Interview &middot; Implementation Question</div>
+      <h1>Set Object Value at the String Path in JavaScript</h1>
+      <p class="lede">Given an object, a path, and a value &mdash; update the object at that path. This is a <b>polyfill for Lodash's <code>_.set()</code></b> and the opposite of <code>_.get()</code>. It's a key tool for config handling, API responses, and form state management.</p>
+      <div class="badges">
+        <span class="badge-meta"><b>Difficulty:</b> &#11088;&#11088;&#11088;</span>
+        <span class="badge-meta"><b>Category:</b> Object Mutation</span>
+        <span class="badge-meta"><b>Frequency:</b> Medium</span>
+        <span class="badge-meta">#object</span>
+        <span class="badge-meta">#set</span>
+        <span class="badge-meta">#lodash</span>
+        <span class="badge-meta">#polyfill</span>
+        <span class="badge-meta">#recursion</span>
+      </div>
+    </header>
+
+    <main>
+
+      <section class="card" id="question">
+        <h2>The question</h2>
+        <p class="hint">Restate what the interviewer is really asking before you write code.</p>
+        <ul>
+          <li>Take an object, a path (string or array), and a value.</li>
+          <li>Set the value at that path, creating intermediate objects/arrays as needed.</li>
+          <li>Support both <b>dot notation</b> and <b>bracket notation</b> in the path.</li>
+        </ul>
+        <div class="problem-grid">
+          <div class="io-box">
+            <div class="label">Input</div>
+            <div class="code-wrap"><pre><code>const obj = { a: [{ b: { c: 3 } }] };
+set(obj, 'a[0].b.c', 4);</code></pre></div>
+          </div>
+          <div class="io-box">
+            <div class="label">Output</div>
+            <div class="code-wrap"><pre><code>obj.a[0].b.c === 4  // true</code></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="scenarios">
+        <h2>How the question is asked</h2>
+        <p class="hint">The same problem can enter from different doors.</p>
+
+        <div class="step" id="scenario-a">
+          <div class="step-num">A</div>
+          <div class="step-body">
+            <h3>Direct polyfill request</h3>
+            <p class="say">"Write a polyfill for lodash's <code>_.set()</code>."</p>
+            <p>The interviewer wants to see you handle path normalization, recursive object creation, and value assignment. This is harder than <code>_.get()</code> because you need to create intermediate structures.</p>
+          </div>
+        </div>
+
+        <div class="step" id="scenario-b">
+          <div class="step-num">B</div>
+          <div class="step-body">
+            <h3>Progressive complexity</h3>
+            <p class="say">"Set a value in a nested object." &rarr; "Now with a string path." &rarr; "Create missing paths automatically." &rarr; "Handle arrays too."</p>
+            <p>The interviewer ramps up complexity. Each level builds on the previous.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="steps">
+        <h2>How to answer, step by step</h2>
+        <p class="hint">The strongest answer follows this progression.</p>
+
+        <div class="step" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clarify the question</h3>
+            <p class="say">"Should I create intermediate objects/arrays if the path doesn't exist? Or should I throw an error?"</p>
+            <p>Almost always, the answer is "create them automatically." This is the key design decision &mdash; lodash's <code>_.set()</code> creates missing paths.</p>
+          </div>
+        </div>
+
+        <div class="step" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Path normalization</h3>
+            <p class="say">"First, convert the path into an array of keys &mdash; same as the <code>_.get()</code> approach."</p>
+            <div class="code-wrap"><pre><code>// "a[0].b.c" → ["a", "0", "b", "c"]
+// ['a', '0', 'b', 'c'] → ["a", "0", "b", "c"]
+
+if (typeof path === 'string') {
+  pathArr = path.replace('[', '.').replace(']', '').split(".");
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="step" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>The recursive helper</h3>
+            <p class="say">"The helper walks the path recursively. At each step, it checks if the current key exists &mdash; if not, it creates an array or object based on the next key."</p>
+            <div class="code-wrap"><pre><code>const helper = (obj, path, value) => {
+  let [current, ...rest] = path;
+
+  if (rest.length > 0) {
+    // More keys to traverse
+    if (!obj[current]) {
+      // Key doesn't exist: create array or object
+      const isNumber = `${+rest[0]}` === rest[0];
+      obj[current] = isNumber ? [] : {};
+    }
+
+    if (typeof obj[current] !== 'object') {
+      // Current value is a primitive: replace it
+      const isNumber = `${+rest[0]}` === rest[0];
+      obj[current] = helper(isNumber ? [] : {}, rest, value);
+    } else {
+      // Current value is an object: recurse
+      obj[current] = helper(obj[current], rest, value);
+    }
+  } else {
+    // Last key: assign the value
+    obj[current] = value;
+  }
+
+  return obj;
+};</code></pre></div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Array vs Object detection</div>
+              <p style="margin:0">The trick <code>`${+rest[0]}` === rest[0]</code> checks if the next key is a numeric string. If it is, we create an array (since numeric keys indicate array indices). Otherwise, we create an object.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-4">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Write the full implementation</h3>
+
+            <div class="sub-step-header">A. The set function</div>
+            <div class="code-wrap"><pre><code>const set = (obj, path, value) => {
+  let pathArr = path;
+
+  if (typeof path === 'string') {
+    pathArr = path.replace('[', '.').replace(']', '').split(".");
+  }
+
+  helper(obj, pathArr, value);
+};</code></pre></div>
+
+            <div class="sub-step-header">B. Test it</div>
+            <div class="code-wrap"><pre><code>const abc = {
+  a: { b: { c: [1, 2, 3] }, d: { a: "hello" } }
+};
+
+const instance1 = JSON.parse(JSON.stringify(abc));
+set(instance1, 'a.b.c', 'learnersbucket');
+console.log(instance1.a.b.c); // "learnersbucket"
+
+const instance2 = JSON.parse(JSON.stringify(abc));
+set(instance2, 'a.b.c[1]', 'learnersbucket');
+console.log(instance2.a.b.c[1]); // "learnersbucket"
+
+const instance3 = JSON.parse(JSON.stringify(abc));
+set(instance3, 'a.b.c[3]', 'learnersbucket');
+console.log(instance3.a.b.c[3]); // "learnersbucket" (creates index 3)
+
+const instance4 = JSON.parse(JSON.stringify(abc));
+set(instance4, 'a.c.d[0]', 'learnersbucket');
+console.log(instance4.a.c.d[0]); // "learnersbucket" (creates entire path)
+
+const object = { a: [{ b: { c: 3 } }] };
+set(object, 'a[0].b.c', 4);
+console.log(object.a[0].b.c); // 4
+
+set(object, ['x', '0', 'y', 'z'], 5);
+console.log(object.x[0].y.z); // 5</code></pre></div>
+          </div>
+        </div>
+
+        <div class="step" id="step-5">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Close with edge cases and complexity</h3>
+            <p class="say">"A few edge cases &mdash; this method overrides existing values, creates intermediate structures, and mutates the original object."</p>
+
+            <div class="callout warn">
+              <div class="callout-title">&#9888; Mutates the original object</div>
+              <p style="margin:0">Unlike <code>_.get()</code> which is read-only, <code>_.set()</code> mutates the object in place. If you want immutability, you'd need to deep-clone first.</p>
+            </div>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Overwrites existing values</div>
+              <div class="code-wrap"><pre><code>const obj = { a: { b: 1 } };
+set(obj, 'a.b', 2);
+console.log(obj.a.b); // 2 (overwritten)</code></pre></div>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Time &amp; space complexity</div>
+              <ul style="margin:4px 0 0">
+                <li><b>Time:</b> O(n) where n is the path depth.</li>
+                <li><b>Space:</b> O(d) for the call stack where d is the path depth, plus any new objects created.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card" id="insights">
+        <h2>Key insights</h2>
+        <ul>
+          <li><b>Complements <code>_.get()</code></b> &mdash; together they handle reading and writing nested properties.</li>
+          <li><b>Auto-creates paths</b> &mdash; if <code>a.b.c</code> doesn't exist, it builds the entire chain.</li>
+          <li><b>Array vs object detection</b> is key &mdash; numeric next-key means create an array, otherwise an object.</li>
+          <li><b>Recursive decomposition</b> &mdash; destructure <code>[current, ...rest]</code> to process one key at a time.</li>
+          <li><b>Mutates in place</b> &mdash; be aware this modifies the original object.</li>
+          <li>Useful for <b>config handling, API responses, and form state management</b>.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="takeaway">
+        <h2>Takeaway</h2>
+        <div class="takeaway">
+          By creating a polyfill for Lodash's <code>_.set()</code>, we learn how to handle <b>dynamic paths</b> for nested objects, safely <b>mutate deeply nested values</b>, and build <b>recursive utilities</b> for object manipulation. This complements the <code>_.get()</code> polyfill and is crucial for config handling, API responses, and form state management.
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <div class="related">
+        <span class="related-label">Related</span>
+        <a href="../06_Get_Object_Value_from_String_Path_in_JavaScript/06_Get_Object_Value_from_String_Path_in_JavaScript.html">Get value at path</a>
+        <a href="../04_How_to_Merge_Objects_in_JavaScript/04_How_to_Merge_Objects_in_JavaScript.html">Merge objects</a>
+        <a href="07_Set_Object_Value_at_the_String_Path_in_JavaScript.md">Source markdown</a>
+      </div>
+      <div>
+        Reference: <a href="https://learnersbucket.com/examples/interview/set-object-value-at-the-string-path/" target="_blank" rel="noopener">learnersbucket.com</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const code = wrap.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+  wrap.appendChild(btn);
+});
+window.addEventListener('scroll', () => {
+  const fill = document.getElementById('progressFill');
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = docHeight > 0 ? (scrollTop / docHeight * 100) + '%' : '0%';
+});
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = [];
+tocLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+function updateToc() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  tocLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateToc);
+updateToc();
+</script>
+</body>
+</html>

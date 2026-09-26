@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Object Value from String Path: Interview Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --panel-2: #1e222d; --border: #2a2f3d;
+    --text: #e6e8ee; --muted: #9aa3b2; --accent: #6c8cff; --ok: #34d399;
+    --bad: #f87171; --warn: #fbbf24; --code: #ffd479; --code-bg: #0c0e14;
+  }
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .page { display: grid; grid-template-columns: 200px 1fr; max-width: 1200px; margin: 0 auto; }
+  .sidebar { position: sticky; top: 0; height: 100vh; padding: 32px 16px 32px 24px; border-right: 1px solid var(--border); overflow-y: auto; font-size: 13px; }
+  .sidebar-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { margin-bottom: 4px; }
+  .toc-list a { display: block; padding: 6px 10px; border-radius: 6px; color: var(--muted); transition: all .15s; }
+  .toc-list a:hover { background: rgba(108,140,255,.08); color: var(--text); text-decoration: none; }
+  .toc-list a.active { background: rgba(108,140,255,.12); color: var(--accent); font-weight: 600; }
+  .toc-list .toc-sub { padding-left: 20px; }
+  .progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--border); z-index: 100; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width .15s; border-radius: 0 2px 2px 0; }
+  .content { min-width: 0; }
+  header { padding: 48px 36px 28px; border-bottom: 1px solid var(--border); }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  h1 { margin: 10px 0 8px; font-size: 32px; line-height: 1.2; }
+  header .lede { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-meta { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+  .badge-meta b { color: var(--accent); font-weight: 600; }
+  main { padding: 0 36px 80px; display: grid; gap: 0; }
+  section.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-top: 22px; }
+  .card h2 { margin: 0 0 6px; font-size: 22px; }
+  .card h2 + .hint { margin: 0 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 17px; margin: 0 0 8px; color: var(--text); }
+  header .lede, .card p, .card ul { max-width: 70ch; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--code); }
+  .code-wrap { position: relative; margin: 12px 0; }
+  .code-wrap pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 13px; color: #cfd6e4; line-height: 1.55; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .copy-btn.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .io-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .io-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 8px; }
+  .step { display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding: 18px 0; border-top: 1px solid var(--border); }
+  .step:first-of-type { border-top: 0; padding-top: 4px; }
+  .step-num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(108,140,255,.15); color: var(--accent); font-weight: 700; font-size: 14px; border: 1px solid rgba(108,140,255,.35); }
+  .step-body h3 { margin: 3px 0 8px; font-size: 17px; }
+  .step-body p { margin: 0 0 10px; }
+  .step-body .code-wrap { margin-top: 10px; }
+  .say { border-left: 3px solid var(--accent); background: rgba(108,140,255,.07); padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic; color: #cdd5e8; margin: 0 0 10px; }
+  .callout { padding: 14px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px; line-height: 1.6; }
+  .callout-title { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .callout.warn { background: rgba(251,191,36,.08); border-left: 3px solid var(--warn); }
+  .callout.warn .callout-title { color: var(--warn); }
+  .callout.danger { background: rgba(248,113,113,.08); border-left: 3px solid var(--bad); }
+  .callout.danger .callout-title { color: var(--bad); }
+  .callout.tip { background: rgba(52,211,153,.08); border-left: 3px solid var(--ok); }
+  .callout.tip .callout-title { color: var(--ok); }
+  .callout.info { background: rgba(108,140,255,.08); border-left: 3px solid var(--accent); }
+  .callout.info .callout-title { color: var(--accent); }
+  .sub-step-header { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 22px; margin-bottom: 8px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .takeaway { border-left: 3px solid var(--ok); background: rgba(52,211,153,.07); padding: 12px 16px; border-radius: 0 8px 8px 0; }
+  #question { background: transparent; border: 0; border-radius: 0; padding: 6px 0 8px; }
+  #insights, #takeaway { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 22px 0 6px; }
+  footer { max-width: 1200px; margin: 0 auto; padding: 0 36px 60px; color: var(--muted); font-size: 13px; }
+  .related { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+  .related-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  @media (max-width: 900px) { .page { grid-template-columns: 1fr; } .sidebar { display: none; } header { padding: 32px 20px 24px; } main { padding: 0 20px 60px; } footer { padding: 0 20px 40px; } h1 { font-size: 26px; } }
+  @media (max-width: 680px) { .problem-grid { grid-template-columns: 1fr; } .step { grid-template-columns: 30px 1fr; gap: 10px; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .step, section.card { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="page">
+  <nav class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#question">The Question</a></li>
+      <li><a href="#scenarios">How It's Asked</a></li>
+      <li class="toc-sub"><a href="#scenario-a">A. Direct polyfill</a></li>
+      <li class="toc-sub"><a href="#scenario-b">B. Progressive complexity</a></li>
+      <li><a href="#steps">Step by Step</a></li>
+      <li class="toc-sub"><a href="#step-1">1. Clarify</a></li>
+      <li class="toc-sub"><a href="#step-2">2. Path normalization</a></li>
+      <li class="toc-sub"><a href="#step-3">3. Traversal with reduce</a></li>
+      <li class="toc-sub"><a href="#step-4">4. Full implementation</a></li>
+      <li class="toc-sub"><a href="#step-5">5. Edge cases</a></li>
+      <li><a href="#insights">Key Insights</a></li>
+      <li><a href="#takeaway">Takeaway</a></li>
+    </ul>
+  </nav>
+
+  <div class="content">
+    <header>
+      <div class="kicker">JavaScript Interview &middot; Implementation Question</div>
+      <h1>Get Object Value from String Path in JavaScript</h1>
+      <p class="lede">Implement a method that takes an object and a string path (or array of strings) and returns the value at that path. This is a <b>polyfill for <code>lodash._get()</code></b> &mdash; one of the most commonly used utility functions.</p>
+      <div class="badges">
+        <span class="badge-meta"><b>Difficulty:</b> &#11088;&#11088;</span>
+        <span class="badge-meta"><b>Category:</b> Object Traversal</span>
+        <span class="badge-meta"><b>Frequency:</b> High</span>
+        <span class="badge-meta">#object</span>
+        <span class="badge-meta">#path</span>
+        <span class="badge-meta">#lodash</span>
+        <span class="badge-meta">#polyfill</span>
+      </div>
+    </header>
+
+    <main>
+
+      <section class="card" id="question">
+        <h2>The question</h2>
+        <p class="hint">Restate what the interviewer is really asking before you write code.</p>
+        <ul>
+          <li>Take an object and a dot/bracket path string (e.g., <code>"a.b.c[0]"</code>).</li>
+          <li>Return the value at that path, or <code>undefined</code> if the path doesn't exist.</li>
+          <li>Support both <b>dot notation</b> (<code>a.b.c</code>) and <b>bracket notation</b> (<code>a.b.c[0]</code>).</li>
+        </ul>
+        <div class="problem-grid">
+          <div class="io-box">
+            <div class="label">Input</div>
+            <div class="code-wrap"><pre><code>const obj = { a: { b: { c: [1,2,3] } } };
+get(obj, 'a.b.c[1]')</code></pre></div>
+          </div>
+          <div class="io-box">
+            <div class="label">Output</div>
+            <div class="code-wrap"><pre><code>2</code></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="scenarios">
+        <h2>How the question is asked</h2>
+        <p class="hint">The same problem can enter from different doors.</p>
+
+        <div class="step" id="scenario-a">
+          <div class="step-num">A</div>
+          <div class="step-body">
+            <h3>Direct polyfill request</h3>
+            <p class="say">"Write a polyfill for lodash's <code>_.get()</code>."</p>
+            <p>The interviewer wants to see you build it from scratch. Start by clarifying the path format (dot notation, bracket notation, or both), then walk through normalization and traversal.</p>
+          </div>
+        </div>
+
+        <div class="step" id="scenario-b">
+          <div class="step-num">B</div>
+          <div class="step-body">
+            <h3>Progressive complexity</h3>
+            <p class="say">"Get a value from a nested object." &rarr; "Now with a string path." &rarr; "Handle bracket notation." &rarr; "What about arrays?"</p>
+            <p>The interviewer ramps up complexity. Answer each level before moving on.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="steps">
+        <h2>How to answer, step by step</h2>
+        <p class="hint">The strongest answer follows this progression.</p>
+
+        <div class="step" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clarify the question</h3>
+            <p class="say">"Should the path support both dot notation and bracket notation? And should I handle array indices as part of the path?"</p>
+            <p>This confirms the contract. The interviewer will usually say "handle both."</p>
+          </div>
+        </div>
+
+        <div class="step" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Explain path normalization</h3>
+            <p class="say">"First, I need to normalize the path &mdash; convert it into an array of keys."</p>
+            <div class="code-wrap"><pre><code>// Input path: "a.b.c[0]"
+// After normalization: ["a", "b", "c", "0"]
+
+// Steps:
+// 1. If path is an array, join with "."
+// 2. Remove "[", "]", and "." characters
+// 3. Extract the remaining characters as individual keys</code></pre></div>
+            <div class="callout info">
+              <div class="callout-title">&#9432; Why normalize?</div>
+              <p style="margin:0">Path strings can be <code>"a.b.c"</code>, <code>"a.b.c[0]"</code>, or <code>["a", "b", "c"]</code>. Normalizing converts all formats into a uniform array of keys that we can iterate over.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Traverse with reduce</h3>
+            <p class="say">"Once I have the keys, I use <code>reduce</code> to walk the object step by step."</p>
+            <div class="code-wrap"><pre><code>// reduce walks the path:
+// Start: obj
+// Step 1: obj["a"]      → { b: { c: [1,2,3] } }
+// Step 2: obj["a"]["b"]  → { c: [1,2,3] }
+// Step 3: obj["a"]["b"]["c"] → [1,2,3]
+// Step 4: obj["a"]["b"]["c"]["0"] → 1
+
+const value = exactPath.reduce((source, path) => source[path], obj);</code></pre></div>
+          </div>
+        </div>
+
+        <div class="step" id="step-4">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Write the full implementation</h3>
+            <p class="say">"Here's the complete <code>get</code> function &mdash; a polyfill for <code>lodash._get()</code>."</p>
+
+            <div class="sub-step-header">A. The implementation</div>
+            <div class="code-wrap"><pre><code>const get = (obj, path) => {
+  // if path is not a string or array of string
+  if (path === '' || path.length == 0) return undefined;
+
+  // if path is an array, concatenate it and form a string
+  if (Array.isArray(path)) path = path.join('.');
+
+  // filter out brackets and dots
+  let exactPath = [];
+  for (let i = 0; i < path.length; i++) {
+    if (path[i] !== '[' && path[i] !== ']' && path[i] !== '.') {
+      exactPath.push(path[i]);
+    }
+  }
+
+  // traverse the object
+  const value = exactPath.reduce((source, path) => source[path], obj);
+
+  // return value or undefined
+  return value ? value : undefined;
+};</code></pre></div>
+
+            <div class="sub-step-header">B. Walk through each line</div>
+            <p><b>Line 1 &mdash; guard clause.</b> If the path is empty or has no length, return <code>undefined</code> immediately.</p>
+            <p><b>Line 2 &mdash; array path.</b> If the path is an array like <code>["a", "b", "c"]</code>, join it with dots to form <code>"a.b.c"</code>.</p>
+            <p><b>Lines 3-7 &mdash; normalize.</b> Loop through the path string and extract only alphanumeric characters, removing <code>[</code>, <code>]</code>, and <code>.</code>.</p>
+            <p><b>Line 8 &mdash; traverse.</b> Use <code>reduce</code> to walk the object. Each iteration accesses the next key in the chain.</p>
+            <p><b>Line 9 &mdash; return.</b> Return the value, or <code>undefined</code> if the chain broke at any point.</p>
+
+            <div class="sub-step-header">C. Test it</div>
+            <div class="code-wrap"><pre><code>const obj = { a: { b: { c: [1,2,3] } } };
+
+console.log(get(obj, 'a.b.c'));          // [1,2,3]
+console.log(get(obj, 'a.b.c.0'));        // 1
+console.log(get(obj, 'a.b.c[1]'));       // 2
+console.log(get(obj, ['a','b','c','2'])); // 3
+console.log(get(obj, 'a.b.c[3]'));       // undefined
+console.log(get(obj, 'a.c'));            // undefined</code></pre></div>
+          </div>
+        </div>
+
+        <div class="step" id="step-5">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Close with edge cases and complexity</h3>
+            <p class="say">"A few edge cases &mdash; empty path, missing intermediate keys, and the difference between <code>null</code> and <code>undefined</code>."</p>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Missing intermediate keys</div>
+              <div class="code-wrap"><pre><code>get({ a: { b: 1 } }, 'a.x.y');
+// undefined &mdash; "x" doesn't exist, chain breaks</code></pre></div>
+            </div>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Empty path</div>
+              <div class="code-wrap"><pre><code>get({ a: 1 }, '');
+// undefined &mdash; guard clause catches this</code></pre></div>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Time &amp; space complexity</div>
+              <ul style="margin:4px 0 0">
+                <li><b>Time:</b> O(n) where n is the length of the path (number of keys to traverse).</li>
+                <li><b>Space:</b> O(n) for the normalized path array.</li>
+              </ul>
+            </div>
+
+            <div class="callout warn">
+              <div class="callout-title">&#9888; Return value caveat</div>
+              <p style="margin:0">The current implementation uses <code>return value ? value : undefined</code>, which treats <code>0</code>, <code>""</code>, and <code>false</code> as falsy. A more robust check would be <code>return value !== undefined ? value : undefined</code>.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card" id="insights">
+        <h2>Key insights</h2>
+        <ul>
+          <li>This mimics <b>Lodash's <code>_.get()</code></b> behavior &mdash; one of the most used utility functions in JavaScript.</li>
+          <li><b>Path normalization</b> is the key challenge &mdash; converting <code>"a.b.c[0]"</code> into <code>["a", "b", "c", "0"]</code>.</li>
+          <li><b><code>reduce</code></b> is the natural fit for sequential traversal &mdash; each step passes the current value to the next.</li>
+          <li>Works for both <b>dot notation</b> and <b>bracket notation</b> paths.</li>
+          <li>Safely handles <b>nested arrays</b> (via index access) and objects.</li>
+          <li>Returns <code>undefined</code> if path is invalid, preventing runtime errors like <code>Cannot read property of undefined</code>.</li>
+          <li>Useful for <b>config files, APIs, form data, and deeply nested JSON</b>.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="takeaway">
+        <h2>Takeaway</h2>
+        <div class="takeaway">
+          By building a polyfill for <code>_.get()</code>, we learn about <b>dynamic property access</b>, <b>string parsing and normalization</b>, and <b>safe object traversal</b> with <code>reduce</code>. This pattern is extremely useful for config files, APIs, form data, and deeply nested JSON.
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <div class="related">
+        <span class="related-label">Related</span>
+        <a href="../07_Set_Object_Value_at_the_String_Path_in_JavaScript/07_Set_Object_Value_at_the_String_Path_in_JavaScript.html">Set value at path</a>
+        <a href="../02_Deep_Flatten_Object_in_JavaScript/02_Deep_Flatten_Object_in_JavaScript.html">Deep flatten object</a>
+        <a href="06_Get_Object_Value_from_String_Path_in_JavaScript.md">Source markdown</a>
+      </div>
+      <div>
+        Reference: <a href="https://learnersbucket.com/examples/interview/get-object-value-from-string-path/" target="_blank" rel="noopener">learnersbucket.com</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const code = wrap.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+  wrap.appendChild(btn);
+});
+window.addEventListener('scroll', () => {
+  const fill = document.getElementById('progressFill');
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = docHeight > 0 ? (scrollTop / docHeight * 100) + '%' : '0%';
+});
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = [];
+tocLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+function updateToc() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  tocLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateToc);
+updateToc();
+</script>
+</body>
+</html>

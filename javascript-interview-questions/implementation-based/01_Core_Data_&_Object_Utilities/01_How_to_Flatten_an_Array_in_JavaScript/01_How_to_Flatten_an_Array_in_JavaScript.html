@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flatten an Array: Interview Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel-2: #1e222d;
+    --border: #2a2f3d;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #6c8cff;
+    --ok: #34d399;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --code: #ffd479;
+    --code-bg: #0c0e14;
+  }
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Layout ── */
+  .page { display: grid; grid-template-columns: 200px 1fr; max-width: 1200px; margin: 0 auto; }
+
+  /* ── Sidebar TOC ── */
+  .sidebar {
+    position: sticky; top: 0; height: 100vh; padding: 32px 16px 32px 24px;
+    border-right: 1px solid var(--border); overflow-y: auto; font-size: 13px;
+  }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { margin-bottom: 4px; }
+  .toc-list a {
+    display: block; padding: 6px 10px; border-radius: 6px; color: var(--muted);
+    transition: all .15s;
+  }
+  .toc-list a:hover { background: rgba(108,140,255,.08); color: var(--text); text-decoration: none; }
+  .toc-list a.active { background: rgba(108,140,255,.12); color: var(--accent); font-weight: 600; }
+  .toc-list .toc-sub { padding-left: 20px; }
+
+  /* ── Progress bar ── */
+  .progress-track {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--border); z-index: 100;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width .15s; border-radius: 0 2px 2px 0;
+  }
+
+  /* ── Main content ── */
+  .content { min-width: 0; }
+
+  header {
+    padding: 48px 36px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  h1 { margin: 10px 0 8px; font-size: 32px; line-height: 1.2; }
+  header .lede { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-meta {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+  }
+  .badge-meta b { color: var(--accent); font-weight: 600; }
+  .badge-meta.company b { color: var(--warn); }
+
+  main { padding: 0 36px 80px; display: grid; gap: 0; }
+
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 22px;
+  }
+  .card h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: .2px; }
+  .card h2 + .hint { margin: 0 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 17px; margin: 0 0 8px; color: var(--text); }
+  header .lede, .card p, .card ul { max-width: 70ch; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--code);
+  }
+
+  /* ── Code blocks ── */
+  .code-wrap {
+    position: relative; margin: 12px 0;
+  }
+  .code-wrap pre {
+    margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 10px; overflow-x: auto; font-size: 13px; color: #cfd6e4; line-height: 1.55;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .copy-btn.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  /* ── Problem + example ── */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .io-box {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .io-box .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  /* ── Steps ── */
+  .step {
+    display: grid; grid-template-columns: 38px 1fr; gap: 14px;
+    padding: 18px 0; border-top: 1px solid var(--border);
+  }
+  .step:first-of-type { border-top: 0; padding-top: 4px; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(108,140,255,.15); color: var(--accent); font-weight: 700; font-size: 14px;
+    border: 1px solid rgba(108,140,255,.35);
+  }
+  .step-body h3 { margin: 3px 0 8px; font-size: 17px; }
+  .step-body p { margin: 0 0 10px; }
+  .step-body .code-wrap { margin-top: 10px; }
+
+  /* ── Say block (quote) ── */
+  .say {
+    border-left: 3px solid var(--accent); background: rgba(108,140,255,.07);
+    padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic;
+    color: #cdd5e8; margin: 0 0 10px;
+  }
+
+  /* ── Callout boxes ── */
+  .callout {
+    padding: 14px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px;
+    line-height: 1.6;
+  }
+  .callout-title {
+    font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .callout.warn {
+    background: rgba(251,191,36,.08); border-left: 3px solid var(--warn);
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+  .callout.danger {
+    background: rgba(248,113,113,.08); border-left: 3px solid var(--bad);
+  }
+  .callout.danger .callout-title { color: var(--bad); }
+  .callout.tip {
+    background: rgba(52,211,153,.08); border-left: 3px solid var(--ok);
+  }
+  .callout.tip .callout-title { color: var(--ok); }
+  .callout.info {
+    background: rgba(108,140,255,.08); border-left: 3px solid var(--accent);
+  }
+  .callout.info .callout-title { color: var(--accent); }
+
+  /* ── Pill / tags ── */
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .pill.info { color: var(--muted); background: rgba(154,163,178,.12); }
+
+  /* ── Sub-step headers (4A, 4B, etc.) ── */
+  .sub-step-header {
+    font-size: 13px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .5px; margin-top: 22px; margin-bottom: 8px;
+    padding-top: 16px; border-top: 1px dashed var(--border);
+  }
+
+  /* ── Takeaway ── */
+  .takeaway {
+    border-left: 3px solid var(--ok); background: rgba(52,211,153,.07);
+    padding: 12px 16px; border-radius: 0 8px 8px 0;
+  }
+
+  /* ── Hierarchy overrides ── */
+  #question { background: transparent; border: 0; border-radius: 0; padding: 6px 0 8px; }
+  #insights, #takeaway { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 22px 0 6px; }
+  #steps, #scenarios { border-color: rgba(108,140,255,.38); }
+
+  /* ── Footer ── */
+  footer {
+    max-width: 1200px; margin: 0 auto; padding: 0 36px 60px;
+    color: var(--muted); font-size: 13px;
+  }
+  .related { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+  .related-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    header { padding: 32px 20px 24px; }
+    main { padding: 0 20px 60px; }
+    footer { padding: 0 20px 40px; }
+    h1 { font-size: 26px; }
+  }
+  @media (max-width: 680px) {
+    .problem-grid { grid-template-columns: 1fr; }
+    .step { grid-template-columns: 30px 1fr; gap: 10px; }
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .step, section.card { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="page">
+  <!-- Sidebar TOC -->
+  <nav class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#question">The Question</a></li>
+      <li><a href="#scenarios">How It's Asked</a></li>
+      <li class="toc-sub"><a href="#scenario-a">A. Direct polyfill</a></li>
+      <li class="toc-sub"><a href="#scenario-b">B. Progressive complexity</a></li>
+      <li><a href="#steps">Step by Step</a></li>
+      <li class="toc-sub"><a href="#step-1">1. Clarify</a></li>
+      <li class="toc-sub"><a href="#step-2">2. Native approach</a></li>
+      <li class="toc-sub"><a href="#step-3">3. One-liner trick</a></li>
+      <li class="toc-sub"><a href="#step-4">4. Full polyfill</a></li>
+      <li class="toc-sub"><a href="#step-5">5. Edge cases</a></li>
+      <li><a href="#reduce-alternative">Reduce Alternative</a></li>
+      <li><a href="#insights">Key Insights</a></li>
+      <li><a href="#takeaway">Takeaway</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main content -->
+  <div class="content">
+    <header>
+      <div class="kicker">JavaScript Interview &middot; Implementation Question</div>
+      <h1>How to Flatten an Array in JavaScript</h1>
+      <p class="lede">This question was asked in <b>Meta's frontend interview</b>. Flattening means converting nested sub-arrays (N-dimensional) into a single one-dimensional array. Below is how to answer it step by step.</p>
+      <div class="badges">
+        <span class="badge-meta company"><b>Company:</b> Meta</span>
+        <span class="badge-meta"><b>Difficulty:</b> &#11088;&#11088;</span>
+        <span class="badge-meta"><b>Category:</b> Array Operations</span>
+        <span class="badge-meta"><b>Frequency:</b> High</span>
+        <span class="badge-meta">#array</span>
+        <span class="badge-meta">#flatten</span>
+        <span class="badge-meta">#flatMap</span>
+        <span class="badge-meta">#polyfill</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- 1. THE QUESTION -->
+      <section class="card" id="question">
+        <h2>The question</h2>
+        <p class="hint">Restate what the interviewer is really asking before you write code.</p>
+        <ul>
+          <li>Merge nested arrays into a single flat array.</li>
+          <li>Support flattening to <b>one level</b>, a <b>specified depth</b>, and <b>infinite depth</b>.</li>
+          <li>Be ready to discuss <b>native methods</b> (<code>flat</code>, <code>flatMap</code>) and write a <b>custom polyfill</b>.</li>
+        </ul>
+        <div class="problem-grid">
+          <div class="io-box">
+            <div class="label">Input</div>
+            <div class="code-wrap"><pre><code>[[[1, [1.1]], 2, 3], [4, 5]]</code></pre></div>
+          </div>
+          <div class="io-box">
+            <div class="label">Output</div>
+            <div class="code-wrap"><pre><code>[1, 1.1, 2, 3, 4, 5]</code></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. HOW THE QUESTION IS ASKED -->
+      <section class="card" id="scenarios">
+        <h2>How the question is asked</h2>
+        <p class="hint">The same problem can enter from different doors. Recognise the entry point and pick the right approach.</p>
+
+        <!-- SCENARIO A -->
+        <div class="step" id="scenario-a">
+          <div class="step-num">A</div>
+          <div class="step-body">
+            <h3>Direct polyfill request</h3>
+            <p class="say">"Write a polyfill for <code>Array.prototype.flat()</code>."</p>
+            <p>The interviewer skips the problem statement and goes straight to implementation. This is common when they already know you know the native API &mdash; they want to see you <b>build it from scratch</b>.</p>
+            <p><b>What to do:</b> Skip the native explanation. Go straight to clarifying depth ("Should I support a depth argument?"), then write the pseudocode, then the polyfill. Show your work: pseudocode &rarr; code &rarr; test &rarr; edge cases.</p>
+          </div>
+        </div>
+
+        <!-- SCENARIO B -->
+        <div class="step" id="scenario-b">
+          <div class="step-num">B</div>
+          <div class="step-body">
+            <h3>Progressive complexity</h3>
+            <p class="say">"Given this array, flatten it." &rarr; "Now with depth." &rarr; "Now handle sparse arrays." &rarr; "What about performance?"</p>
+            <p>The interviewer starts simple and <b>ramps up complexity</b>. Each answer you give becomes the baseline for the next question. This is the most common pattern &mdash; it tests how you adapt under pressure.</p>
+            <p><b>What to do:</b> Answer each level completely before moving on. Don't jump ahead &mdash; if they ask for depth, don't mention performance yet. Let them lead.</p>
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Level 1</div>
+                <div class="code-wrap"><pre><code>// "Flatten this array"
+[[1, [2]], [3, [4]]]
+&rarr; [1, 2, 3, 4]
+
+// Use flat() or a simple recursive function</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Level 2</div>
+                <div class="code-wrap"><pre><code>// "Now support a depth parameter"
+flattenDepth([[1, [2]], [3, [4]]], 1)
+&rarr; [1, [2], 3, [4]]
+
+// Add depth tracking to your function</code></pre></div>
+              </div>
+            </div>
+            <div class="problem-grid" style="margin-top: 12px;">
+              <div class="io-box">
+                <div class="label">Level 3</div>
+                <div class="code-wrap"><pre><code>// "What about sparse arrays?"
+[1, , [2, , 3]]
+&rarr; [1, 2, 3]  // native flat() drops empty slots
+
+// Decide: match native or preserve holes?</code></pre></div>
+              </div>
+              <div class="io-box">
+                <div class="label">Level 4</div>
+                <div class="code-wrap"><pre><code>// "What's the time complexity?"
+// O(n) over all elements
+// Recursion depth = nesting depth
+
+// Mention concat vs push tradeoff</code></pre></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. STEP BY STEP -->
+      <section class="card" id="steps">
+        <h2>How to answer, step by step</h2>
+        <p class="hint">Regardless of how the question is asked, the strongest answer follows this progression. Each step below shows you <b>what to say</b>, <b>what to write</b>, and <b>why it matters</b>.</p>
+
+        <!-- STEP 1 -->
+        <div class="step" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clarify the question</h3>
+            <p class="say">"Before I start coding &mdash; flattening means converting nested sub-arrays into a single one-dimensional array, right? Should I flatten fully, or do you want me to support a specific depth argument?"</p>
+            <p>Asking this shows you think before you code. You're confirming the exact contract: <b>one level</b>, <b>custom depth</b>, or <b>infinite depth</b>. The interviewer will almost always say "support a depth parameter" or "flatten infinitely" &mdash; and now you know the constraint before touching the keyboard.</p>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Show the native approach</h3>
+            <p class="say">"ES2019 gives us <code>flat()</code> and <code>flatMap()</code>. <code>flat()</code> flattens one level by default, takes a depth argument, and even accepts <code>Infinity</code>."</p>
+            <p>This is the baseline. You're proving you know the language before reimplementing anything.</p>
+            <div class="code-wrap"><pre><code>[1, 2, [3, 4]].flat();                       // [1, 2, 3, 4]
+[1, 2, [3, 4], [[5]]].flat(2);               // [1, 2, 3, 4, 5]
+[[[1, [1.1]], 2, 3], [4, 5]].flat(Infinity); // [1, 1.1, 2, 3, 4, 5]</code></pre></div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; flatMap &mdash; map + flatten in one step</div>
+              <p style="margin:0"><code>flatMap()</code> runs a mapping function on each element, then flattens the result by one level. It's equivalent to <code>.map(fn).flat(1)</code> but faster because it avoids creating an intermediate array.</p>
+              <div class="code-wrap" style="margin-top:8px"><pre><code>// map() returns nested arrays
+['hello world', 'foo bar'].map(s => s.split(' '));
+// [["hello", "world"], ["foo", "bar"]]
+
+// flatMap() returns a flat array
+['hello world', 'foo bar'].flatMap(s => s.split(' '));
+// ["hello", "world", "foo", "bar"]</code></pre></div>
+            </div>
+
+            <p><b>Why it matters:</b> The interviewer's real question is "do you know this exists?" If you jump straight to a polyfill without mentioning <code>flat()</code>, you look like you don't know modern JavaScript. Native first, always.</p>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Show a clever one-liner</h3>
+            <p class="say">"A quick trick if the interviewer asks for a one-liner: convert to string and split."</p>
+            <div class="code-wrap"><pre><code>const flatten = (arr) =&gt; arr.toString().split(',').map(Number);
+
+flatten([[1, [1.1]], 2, [3, 4]]);
+// [1, 1.1, 2, 3, 4]</code></pre></div>
+            <div class="callout warn">
+              <div class="callout-title">&#9888; Important caveat</div>
+              <p style="margin:0"><b>This only works for arrays of numbers.</b> It converts everything to strings via <code>toString()</code>, then parses back with <code>Number</code>. It breaks on: strings containing commas (<code>["a,b"]</code> becomes <code>["a", "b"]</code>), objects (<code>[{}, {}]</code>), <code>null</code>, <code>undefined</code>, or nested objects. Don't use this in production &mdash; it's an interview flex only.</p>
+            </div>
+            <p><b>Why it matters:</b> This shows <b>lateral thinking</b>. You're not going to ship this to production, but it demonstrates you can approach the problem from multiple angles. Interviewers notice this. It buys you time and credibility before you write the real implementation.</p>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step" id="step-4">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Write the full polyfill</h3>
+            <p class="say">"Now for a proper implementation &mdash; a recursive loop with a depth parameter."</p>
+            <p>This is the main event. You're showing you can build it from scratch, handle depth correctly, and think about edge cases.</p>
+
+            <!-- 4A: PSEUDOCODE -->
+            <div class="sub-step-header">A. Pseudocode</div>
+            <p>Before writing code, think in plain English. The algorithm does this:</p>
+            <div class="code-wrap"><pre><code>function flattenDepth(arr, depth):
+    create an empty result array
+
+    for each item in arr:
+        if item is an array AND depth &gt; 0:
+            // recurse: flatten the sub-array, reducing depth by 1
+            // and spread the results into our result array
+            push all elements of flattenDepth(item, depth - 1) into result
+        else:
+            // base case: item is not an array, or we've exhausted depth
+            // push it as-is (keeps the sub-array intact)
+            push item into result
+
+    return result</code></pre></div>
+            <p>This pseudocode captures the two core ideas: <b>recursion</b> (call yourself on sub-arrays) and <b>depth tracking</b> (decrement depth each level, stop when it hits 0).</p>
+
+            <!-- 4B: BUILDING THE CODE -->
+            <div class="sub-step-header">B. Building the code &mdash; line by line</div>
+            <p>Now translate the pseudocode into JavaScript. Here's the final version, with every line explained:</p>
+
+            <div class="code-wrap"><pre><code>const flattenDepth = (arr, depth = 1) =&gt; {</code></pre></div>
+            <p><b>Line 1 &mdash; function signature.</b> Takes two arguments: the array to flatten, and a depth parameter defaulting to <code>1</code>. The default matches native <code>flat()</code> behavior &mdash; flatten one level unless told otherwise.</p>
+
+            <div class="code-wrap"><pre><code>  const result = [];</code></pre></div>
+            <p><b>Line 2 &mdash; accumulator.</b> We build a new array instead of mutating the input. In an interview, say: "I'm avoiding mutation so the caller's data isn't modified."</p>
+
+            <div class="code-wrap"><pre><code>  for (const item of arr) {</code></pre></div>
+            <p><b>Line 3 &mdash; iterate every element.</b> A simple <code>for...of</code> loop over the input array. We need to check every element because some are arrays (recurse) and some are values (keep as-is).</p>
+
+            <div class="code-wrap"><pre><code>    if (Array.isArray(item) &amp;&amp; depth &gt; 0) {</code></pre></div>
+            <p><b>Line 4 &mdash; the decision point.</b> Two conditions must both be true to recurse: (1) the item is actually an array, and (2) we still have depth budget left. This is the circuit breaker that stops infinite recursion.</p>
+
+            <div class="code-wrap"><pre><code>      result.push(...flattenDepth(item, depth - 1));</code></pre></div>
+            <p><b>Line 5 &mdash; the recursive call.</b> We call <code>flattenDepth</code> on the sub-array, passing <code>depth - 1</code>. The result is a flat array, so we use spread <code>...</code> to push each element individually into <code>result</code>. This is what makes the function recursive.</p>
+
+            <div class="code-wrap"><pre><code>    } else {</code></pre></div>
+            <p><b>Line 6 &mdash; base case.</b> Either the item isn't an array (it's a primitive), or we've exhausted our depth budget. We stop recursing here.</p>
+
+            <div class="code-wrap"><pre><code>      result.push(item);</code></pre></div>
+            <p><b>Line 7 &mdash; keep as-is.</b> Push the item directly. If depth is 0, sub-arrays stay intact &mdash; not spread, not flattened, just passed through. This matches native <code>flat(0)</code> behavior exactly.</p>
+
+            <div class="code-wrap"><pre><code>    }
+  }
+  return result;
+};</code></pre></div>
+
+            <!-- 4C: THE FINAL VERSION -->
+            <div class="sub-step-header">C. The final version &mdash; clean</div>
+            <p>Putting it all together:</p>
+            <div class="code-wrap"><pre><code>const flattenDepth = (arr, depth = 1) =&gt; {
+  const result = [];
+  for (const item of arr) {
+    if (Array.isArray(item) &amp;&amp; depth &gt; 0) {
+      result.push(...flattenDepth(item, depth - 1));
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+};</code></pre></div>
+
+            <!-- 4D: TEST IT -->
+            <div class="sub-step-header">D. Test it &mdash; verify depth semantics</div>
+            <p>In an interview, walk through examples to prove it works:</p>
+            <div class="code-wrap"><pre><code>// depth 1 &mdash; only flattens the first level
+flattenDepth([[1, [2]], [3, [4]]], 1);
+// &rarr; [1, [2], 3, [4]]    &larr; sub-arrays stay at depth 1
+
+// depth 2 &mdash; goes one level deeper
+flattenDepth([[1, [2]], [3, [4]]], 2);
+// &rarr; [1, 2, 3, 4]        &larr; fully flattened
+
+// depth Infinity &mdash; goes all the way
+flattenDepth([[[1, [2]]]], Infinity);
+// &rarr; [1, 2]               &larr; no nesting left</code></pre></div>
+
+            <!-- 4E: THE BUG -->
+            <div class="sub-step-header">E. The classic bug &mdash; <code>concat</code> vs <code>push</code></div>
+            <p>Here's the detail that separates you from someone who memorized a solution:</p>
+            <div class="code-wrap"><pre><code>// WRONG &mdash; using concat
+const flattenBroken = (arr, depth = 1) =&gt; {
+  return arr.reduce((result, item) =&gt; {
+    if (Array.isArray(item) &amp;&amp; depth &gt; 0) {
+      return result.concat(flattenBroken(item, depth - 1));
+    }
+    return result.concat(item);  // &larr; BUG: concat spreads arrays even at depth 0
+  }, []);
+};
+
+flattenBroken([[1, [2]], [3]], 1);
+// &rarr; [1, 2, 3]    &larr; WRONG! Should be [1, [2], 3]</code></pre></div>
+            <p><b>Why this breaks:</b> <code>Array.concat(item)</code> automatically spreads <code>item</code> if it's an array. So when depth is 0 and the item is <code>[2]</code>, <code>concat</code> spreads it into <code>1, 2</code> instead of keeping it as <code>[2]</code>. The depth parameter becomes meaningless.</p>
+            <p><b>The fix:</b> Use <code>result.push(item)</code> instead. <code>push</code> does not auto-spread &mdash; it adds the item as-is. If the item is an array and depth is 0, it stays an array.</p>
+          </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step" id="step-5">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Close with edge cases and complexity</h3>
+            <p class="say">"A couple of edge cases to consider &mdash; sparse arrays with empty slots, non-array values in the input, and the time complexity is O(n) across all elements. The recursion depth scales with the nesting depth."</p>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Sparse arrays</div>
+              <p style="margin:0">Our <code>for...of</code> loop <b>skips empty slots</b>, matching native <code>flat()</code> behavior:</p>
+              <div class="code-wrap" style="margin-top:8px"><pre><code>// Sparse array: empty slots between values
+const sparse = [1, , [2, , 3]];
+flattenDepth(sparse, Infinity);
+// &rarr; [1, 2, 3]    &larr; empty slots dropped, same as flat()
+
+// If you need to PRESERVE empty slots, use a traditional for loop:
+for (let i = 0; i &lt; arr.length; i++) {
+  // arr[i] is undefined for empty slots &mdash; you can push it
+}</code></pre></div>
+            </div>
+
+            <div class="callout tip">
+              <div class="callout-title">&#10003; Non-array values in input</div>
+              <div class="code-wrap"><pre><code>// Primitives, objects, null &mdash; all pass through untouched
+flattenDepth([1, 'hello', null, [2, [3]]], Infinity);
+// &rarr; [1, 'hello', null, 2, 3]
+
+// Nested objects are NOT flattened (they're not arrays)
+flattenDepth([{ a: 1 }, [2]], Infinity);
+// &rarr; [{ a: 1 }, 2]</code></pre></div>
+            </div>
+
+            <div class="callout danger">
+              <div class="callout-title">&#9888; Stack overflow with deep nesting</div>
+              <p style="margin:0">The recursive version creates one call frame per nesting level. With <code>Infinity</code> depth on a deeply nested array, you can hit the JS call stack limit (~10,000&ndash;15,000 frames in most engines):</p>
+              <div class="code-wrap" style="margin-top:8px"><pre><code>// This will throw: "Maximum call stack size exceeded"
+const deep = Array(20000).fill(null).reduce((acc) =&gt; [acc], 0);
+flattenDepth(deep, Infinity);  // &rarr; RangeError!
+
+// Mitigation: use an iterative approach with an explicit stack
+function flattenIterative(arr) {
+  const stack = [...arr];
+  const result = [];
+  while (stack.length) {
+    const item = stack.pop();
+    if (Array.isArray(item)) {
+      stack.push(...item);
+    } else {
+      result.unshift(item);
+    }
+  }
+  return result;
+}</code></pre></div>
+              <p style="margin:8px 0 0">In practice, nesting deeper than a few hundred levels is rare. Mention this proactively &mdash; it shows you think about production limits, not just algorithmic correctness.</p>
+            </div>
+
+            <div class="callout info">
+              <div class="callout-title">&#9432; Time &amp; space complexity</div>
+              <ul style="margin:4px 0 0">
+                <li><b>Time:</b> O(n) where n is the total number of elements across all nesting levels. Every element is visited exactly once.</li>
+                <li><b>Space:</b> O(n) for the result array, plus O(d) for the call stack where d is the nesting depth.</li>
+              </ul>
+            </div>
+
+            <p><b>Why it matters:</b> This is the finishing move. Most candidates stop after writing the function. By proactively discussing edge cases, you show <b>production thinking</b> &mdash; you're not just solving a puzzle, you're writing code that needs to handle real-world inputs.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- REDUCE ALTERNATIVE -->
+      <section class="card" id="reduce-alternative">
+        <h2>Alternative: <code>reduce</code> + <code>push</code></h2>
+        <p class="hint">A common interview follow-up: "Can you write it with <code>reduce</code>?" Here's a working version that avoids the concat bug.</p>
+        <div class="code-wrap"><pre><code>const flattenDepth = (arr, depth = 1) =&gt; {
+  return arr.reduce((result, item) =&gt; {
+    if (Array.isArray(item) &amp;&amp; depth &gt; 0) {
+      result.push(...flattenDepth(item, depth - 1));
+    } else {
+      result.push(item);  // push, NOT concat
+    }
+    return result;
+  }, []);
+};</code></pre></div>
+        <div class="callout info">
+          <div class="callout-title">&#9432; for...of vs reduce &mdash; which to use?</div>
+          <p style="margin:0">Both work identically. The <code>for...of</code> version is arguably more readable for beginners. The <code>reduce</code> version is more "functional" and often expected in interviews. Know both &mdash; start with whichever you're more comfortable with, and switch if the interviewer asks.</p>
+        </div>
+      </section>
+
+      <!-- 4. KEY INSIGHTS -->
+      <section class="card" id="insights">
+        <h2>Key insights</h2>
+        <ul>
+          <li><b>Know the entry point</b> &mdash; direct polyfill or progressive complexity &mdash; and pick the right approach.</li>
+          <li>Always <b>clarify first</b> &mdash; depth requirement is the key constraint.</li>
+          <li>Start with <b>native</b> &mdash; it shows you know modern JavaScript before reinventing anything.</li>
+          <li>A <b>clever one-liner</b> buys you time and shows lateral thinking &mdash; even if it's not production-ready.</li>
+          <li>The <b>polyfill</b> is where you prove you understand recursion, depth control, and edge cases.</li>
+          <li>Know the <b><code>concat</code> vs <code>push</code></b> distinction &mdash; this is what separates deep understanding from memorization.</li>
+          <li>End with <b>edge cases and complexity</b> &mdash; this is what separates a good answer from a great one.</li>
+        </ul>
+      </section>
+
+      <!-- 5. TAKEAWAY -->
+      <section class="card" id="takeaway">
+        <h2>Takeaway</h2>
+        <div class="takeaway">
+          Flattening arrays is both a common interview problem and a practical skill. In modern browsers use <code>flat</code> / <code>flatMap</code>; when compatibility is required, ship a recursive polyfill. This problem reinforces <b>array methods, recursion, and iteration strategies</b> in JavaScript.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="related">
+        <span class="related-label">Related</span>
+        <a href="../02_Deep_Flatten_Object_in_JavaScript/02_Deep_Flatten_Object_in_JavaScript.html">Deep flatten object</a>
+        <a href="01_How_to_Flatten_an_Array_in_JavaScript.md">Source markdown</a>
+      </div>
+      <div>
+        Reference: <a href="https://learnersbucket.com/examples/array/how-to-flat-an-array-in-javascript/" target="_blank" rel="noopener">learnersbucket.com</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+// ── Copy buttons on code blocks ──
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const code = wrap.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+  wrap.appendChild(btn);
+});
+
+// ── Scroll progress bar ──
+window.addEventListener('scroll', () => {
+  const fill = document.getElementById('progressFill');
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = docHeight > 0 ? (scrollTop / docHeight * 100) + '%' : '0%';
+});
+
+// ── Active TOC link tracking ──
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = [];
+tocLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+
+function updateToc() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  tocLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateToc);
+updateToc();
+</script>
+</body>
+</html>
